@@ -14,20 +14,18 @@ int init_display () {
 	start_color();
 	init_pair(CURRENT_ITEM, COLOR_RED, COLOR_BLACK);
 	init_pair(ACTIVE_ITEM, COLOR_WHITE, COLOR_RED);
+	assume_default_colors(COLOR_RED, COLOR_BLACK);
 
-	params.window_xs = COLS / 2; //window max x
-	params.window_ys = LINES - 1; //window max y
+	//marks
+	params.window_xs = COLS / 2;
+	params.window_ys = LINES - 1; 
 
-	prev = newwin(params.window_ys, params.window_xs / 2, 0, 0);
-	current = newwin(params.window_ys, params.window_xs, 0, params.window_xs / 2 );
-	next = newwin(params.window_ys, params.window_xs, 0, params.window_xs / 2 +  params.window_xs);
+	current = newwin(params.window_ys, params.window_xs, 0, 0);
+	next = newwin(params.window_ys, params.window_xs, 0, params.window_xs );
 	sys = newwin(1, COLS, LINES - 1, 0);
 
 	active_cell.win = current;
-	
-
-	assume_default_colors(COLOR_RED, COLOR_BLACK);
-	curs_set(0);
+	curs_set(0); //hide cursor
 
 	refresh();
 	return 0;
@@ -35,11 +33,6 @@ int init_display () {
 
 void draw_borders(WINDOW* win) {
 	box(win, 0 , 0);
-	wrefresh(win);
-}
-
-void clear_borders(WINDOW* win) {
-	box(win, ' ' , ' ');
 	wrefresh(win);
 }
 
@@ -51,13 +44,14 @@ void destroy_win(WINDOW* win) {
 }
 
 void end_display() {
-	destroy_win(prev);
 	destroy_win(current);
 	destroy_win(next);
 
 	endwin();
 }
 
+// highlight active cell, returns number of lines
+// drawing borders
 int display_ls(WINDOW* win, char* list) {
 	werase(win);
 	//borders
@@ -75,7 +69,6 @@ int display_ls(WINDOW* win, char* list) {
 			wattroff(win, A_BOLD);
 			wattron(win, COLOR_PAIR(CURRENT_ITEM));
 		}
-		
 		while ((*list != '\n') && (*list != '\0')) {
 			mvwaddch(win, y, x, *list);
 			++list;
@@ -104,42 +97,73 @@ void update_sysinfo(char* info) {
 	wrefresh(sys);
 }
 
-void key_handling(char* navigation_panel) {
+// @_@ 
+int key_handling(char* begdir) {
 	int ch;
+
+	//panels filling here
+	char* navigation_panel;
+	char* right_panel;
+	dir_list(begdir, &navigation_panel);
+	dir_content(begdir, &right_panel, active_cell.line);
 	int down_limit = display_ls(current, navigation_panel);
+	display_ls(next, right_panel);
+
+	// menu here
 	while ((ch = getch())!='q') {
 		switch(ch) {
 		case KEY_UP:
 			if (active_cell.line > 1)
 				--active_cell.line;
-			display_ls(current, navigation_panel);
+			display_ls(current, navigation_panel); //navigate cursor highlight
+			dir_content(begdir, &right_panel, active_cell.line); //upload current cell content
+			display_ls(next, right_panel); //display current cell content
 			break;
-		case KEY_DOWN:
+
+		case KEY_DOWN: //KEY_UP
 			if (active_cell.line < down_limit - 1) 
 				++active_cell.line;
-			display_ls(current, navigation_panel);
+			display_ls(current, navigation_panel); 
+			dir_content(begdir, &right_panel, active_cell.line);
+			display_ls(next, right_panel);
 			break;
-		case KEY_RESIZE:
+
+		case KEY_RESIZE: // #_#
 			erase();
 			init_display();
-			update_sysinfo("my old friend");
-			down_limit = display_ls(current, navigation_panel);
+			display_ls(current, navigation_panel);
+			display_ls(next, right_panel);
 			break;
-		case KEY_LEFT:
-			break;
-		case KEY_RIGHT:
+
+		case KEY_LEFT: //return back
+			free(navigation_panel);
+			free(right_panel);
+			return 1;
+
+		case KEY_ENTER:
+		case KEY_RIGHT: ;
+			char* way_through;
+			here_i_go(begdir, &way_through, active_cell.line);
+			int ret = key_handling(way_through);
+			if (ret == 0) {
+				free(navigation_panel);
+				free(right_panel);
+				return 0;
+			}
+			display_ls(next, right_panel);
+			display_ls(current, navigation_panel);
+			free(way_through);
+
 			break;
 		}
 	}
+	free(navigation_panel);
+	free(right_panel);
+	return 0;
 }
 
 void display_all() {
-	params.lvl = 2; // lvl 2 ~ "/home/*username*", lvl 0 == "/" 
 	active_cell.line = 1;
-
-	update_sysinfo("my old friend");
-
-	key_handling("hello\ndarkness\nmy\nold\nfriend\0");
-
+	while (key_handling(".") != 0) ;
 }
 

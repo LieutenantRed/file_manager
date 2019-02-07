@@ -5,6 +5,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <ncurses.h>
+#include "dward.h"
 
 //string
 #ifndef BUFFER_SIZE 
