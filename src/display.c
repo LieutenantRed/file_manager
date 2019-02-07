@@ -24,7 +24,7 @@ int init_display () {
 	sys = newwin(1, COLS, LINES - 1, 0);
 
 	active_cell.win = current;
-	active_cell.line = 1;
+	
 
 	assume_default_colors(COLOR_RED, COLOR_BLACK);
 	curs_set(0);
@@ -58,11 +58,13 @@ void end_display() {
 	endwin();
 }
 
-void display_ls(WINDOW* win, char* list) {
+int display_ls(WINDOW* win, char* list) {
 	werase(win);
 	//borders
-	if ((BORDERS_ENABLED) && (win == current))
+	if ((BORDERS_ENABLED) && (win == current)) {
+		wattron(win, A_BOLD | COLOR_PAIR(CURRENT_ITEM));
 		draw_borders(win);
+	}
 	int x, y;
 	x = 1; y = 1;
 	int max_x = getmaxx(win);
@@ -92,6 +94,7 @@ void display_ls(WINDOW* win, char* list) {
 		}
 	}
 	wrefresh(win);
+	return y;
 }
 
 void update_sysinfo(char* info) {
@@ -101,14 +104,42 @@ void update_sysinfo(char* info) {
 	wrefresh(sys);
 }
 
+void key_handling(char* navigation_panel) {
+	int ch;
+	int down_limit = display_ls(current, navigation_panel);
+	while ((ch = getch())!='q') {
+		switch(ch) {
+		case KEY_UP:
+			if (active_cell.line > 1)
+				--active_cell.line;
+			display_ls(current, navigation_panel);
+			break;
+		case KEY_DOWN:
+			if (active_cell.line < down_limit - 1) 
+				++active_cell.line;
+			display_ls(current, navigation_panel);
+			break;
+		case KEY_RESIZE:
+			erase();
+			init_display();
+			update_sysinfo("my old friend");
+			down_limit = display_ls(current, navigation_panel);
+			break;
+		case KEY_LEFT:
+			break;
+		case KEY_RIGHT:
+			break;
+		}
+	}
+}
+
 void display_all() {
 	params.lvl = 2; // lvl 2 ~ "/home/*username*", lvl 0 == "/" 
+	active_cell.line = 1;
 
-	
-	display_ls(current, "sdsdsd\ndsfghjgf\ndsafsgdh\nasdsfg\nasdc\0");
-
-	display_ls(current, "hello\ndarkness\0");
 	update_sysinfo("my old friend");
 
+	key_handling("hello\ndarkness\nmy\nold\nfriend\0");
 
 }
+
