@@ -12,9 +12,9 @@ int init_display () {
 	    return DERR;
 	}
 	start_color();
-	init_pair(CURRENT_ITEM, COLOR_RED, COLOR_BLACK);
-	init_pair(ACTIVE_ITEM, COLOR_WHITE, COLOR_RED);
-	assume_default_colors(COLOR_RED, COLOR_BLACK);
+	init_pair(CURRENT_ITEM, COLOR_CYAN, COLOR_BLACK);
+	init_pair(ACTIVE_ITEM, COLOR_WHITE, COLOR_CYAN);
+	assume_default_colors(COLOR_CYAN, COLOR_BLACK);
 
 	//marks
 	params.window_xs = COLS / 2;
@@ -46,6 +46,7 @@ void destroy_win(WINDOW* win) {
 void end_display() {
 	destroy_win(current);
 	destroy_win(next);
+	free(active_cell.name);
 
 	endwin();
 }
@@ -99,33 +100,50 @@ void update_sysinfo(char* info) {
 
 // @_@ 
 int key_handling(char* begdir) {
-	int ch;
+	int ch;	
+	char* current_dir = (char*)malloc(sizeof(char)*BUFFER_SIZE);
+	strcpy(current_dir, begdir);
+	char* next_dir = (char*)malloc(sizeof(char)*BUFFER_SIZE);
+	strcpy(next_dir, begdir);
+
+	active_cell.name = offset_name(begdir, active_cell.line, &active_cell.name);
+	dpath(next_dir, active_cell.name);
 
 	//panels filling here
 	char* navigation_panel;
 	char* right_panel;
 	dir_list(begdir, &navigation_panel);
-	dir_content(begdir, &right_panel, active_cell.line);
+	dir_list(next_dir, &right_panel);
 	int down_limit = display_ls(current, navigation_panel);
 	display_ls(next, right_panel);
 
 	// menu here
 	while ((ch = getch())!='q') {
 		switch(ch) {
+		case 'w':
 		case KEY_UP:
 			if (active_cell.line > 1)
 				--active_cell.line;
 			display_ls(current, navigation_panel); //navigate cursor highlight
-			dir_content(begdir, &right_panel, active_cell.line); //upload current cell content
+			ppath(next_dir);
+			active_cell.name = offset_name(current_dir, active_cell.line, &active_cell.name);
+			dpath(next_dir, active_cell.name);
+
+			dir_list(next_dir, &right_panel); //upload current cell content
 			display_ls(next, right_panel); //display current cell content
 			break;
 
+		case 's':
 		case KEY_DOWN: //KEY_UP
 			if (active_cell.line < down_limit - 1) 
 				++active_cell.line;
-			display_ls(current, navigation_panel); 
-			dir_content(begdir, &right_panel, active_cell.line);
-			display_ls(next, right_panel);
+			display_ls(current, navigation_panel); //navigate cursor highlight
+			ppath(next_dir);
+			active_cell.name = offset_name(current_dir, active_cell.line, &active_cell.name);
+			dpath(next_dir, active_cell.name);
+
+			dir_list(next_dir, &right_panel); //upload current cell content
+			display_ls(next, right_panel); //display current cell content
 			break;
 
 		case KEY_RESIZE: // #_#
@@ -136,34 +154,38 @@ int key_handling(char* begdir) {
 			break;
 
 		case KEY_LEFT: //return back
+			active_cell.line = 1;
 			free(navigation_panel);
 			free(right_panel);
+			free(current_dir);
+			free(next_dir);
 			return 1;
 
 		case KEY_ENTER:
 		case KEY_RIGHT: ;
-			char* way_through;
-			here_i_go(begdir, &way_through, active_cell.line);
-			int ret = key_handling(way_through);
+			active_cell.line = 1;
+			int ret = key_handling(next_dir);
 			if (ret == 0) {
 				free(navigation_panel);
 				free(right_panel);
+				free(current_dir);
+				free(next_dir);
 				return 0;
+			} else {
+				display_ls(current, navigation_panel);
+				display_ls(next, right_panel);
 			}
-			display_ls(next, right_panel);
-			display_ls(current, navigation_panel);
-			free(way_through);
-
 			break;
 		}
 	}
 	free(navigation_panel);
 	free(right_panel);
+	free(current_dir);
+	free(next_dir);
 	return 0;
 }
 
-void display_all() {
+void display_navigation() {
 	active_cell.line = 1;
-	while (key_handling(".") != 0) ;
+	while (key_handling("./") != 0) ;
 }
-

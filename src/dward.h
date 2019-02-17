@@ -9,10 +9,16 @@
 #include <stdio.h>
 
 #ifndef BUFFER_SIZE 
-#define BUFFER_SIZE 4000
+#define BUFFER_SIZE 2048
 #endif
 
+int dcount(DIR* d); // returns number of dirs inside d
+int fcount(DIR* d); // returns number of files inside d
+
+char* offset_name(char* ppath, int offset, char** name_ptr);
+
+char* dpath(char* ppath, char* direct);
+char* ppath(char* dpath);
 char* dir_list(char* dirname, char** dest);
-char* dir_content(char* dirname, char** dest, int active_cell);
-char* here_i_go(char* dirname, char** dest, int active_cell);
+
 #endif

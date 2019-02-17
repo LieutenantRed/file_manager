@@ -9,7 +9,7 @@
 
 //string
 #ifndef BUFFER_SIZE 
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 4000
 #endif
 
 //colors
@@ -21,7 +21,7 @@
 #define DERR -33
 #define BORDERS_ENABLED 1
 
-WINDOW *current, *prev, *next, *sys;
+WINDOW *current, *next, *sys;
 
 struct {
 	size_t window_xs, window_ys;
@@ -31,6 +31,7 @@ struct {
 struct {
 	WINDOW* win;
 	int line;
+	char* name;
 } active_cell;
 
 // initial fnc
@@ -39,5 +40,5 @@ void end_display();
 
 
 
-void display_all();
+void display_navigation();
 #endif

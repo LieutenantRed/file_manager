@@ -1,5 +1,76 @@
 #include "dward.h"
 
+int dcount(DIR* d) {
+	int ret = 0;
+	if (d != NULL) {
+		rewinddir(d);
+		struct dirent *dir;
+		while ((dir = readdir(d)) != NULL) {
+			if (dir->d_type == DT_DIR){
+				++ret;
+			}
+		}
+		rewinddir(d);
+	}
+	return ret;
+}
+
+int fcount(DIR* d) {
+	int ret = 0;
+	if (d != NULL) {
+		rewinddir(d);
+		struct dirent *dir;
+		while ((dir = readdir(d)) != NULL) {
+			++ret;
+		}
+		rewinddir(d);
+	}
+	return ret;
+}
+
+char* offset_name(char* ppath, int offset, char** name_ptr) {
+	*name_ptr = (char*)malloc(sizeof(char)*BUFFER_SIZE);
+	strcpy(*name_ptr, "\0");
+	DIR *d;
+	struct dirent *dir;
+	d = opendir(ppath);
+	if (d) {
+		int fc = fcount(d);
+		for (int i = 0; (i < fc) && (i < offset); ++i) {
+			dir = readdir(d);
+		}
+		strcat(*name_ptr, ppath);
+		strcat(*name_ptr, dir->d_name);
+	}
+	closedir(d);
+	return *name_ptr;
+}
+
+
+char* dpath(char* ppath, char* direct) { // перейти в direct директорию, NULL если не директория
+	strcat(ppath, direct);
+	strcat(ppath, "/");
+	
+	DIR *d;
+	struct dirent *dir;
+	d = opendir(ppath);
+	if (!d) {
+		strcpy(ppath, "\0");
+		return NULL;
+	}
+	closedir(d);
+	return ppath;
+}
+
+char* ppath(char* dpath) {
+	if (dpath[1] == '\0')
+		return dpath;
+	char* iter;
+	for (iter = dpath + strlen(dpath) - 2; (*iter != '/') && (iter >= dpath); --iter) ;
+	*(++iter) = '\0';
+	return dpath;
+}
+
 char* dir_list(char* dirname, char** dest) {
 	*dest = (char*)malloc(sizeof(char) * BUFFER_SIZE);
 	**dest = '\0';
@@ -17,43 +88,3 @@ char* dir_list(char* dirname, char** dest) {
 	return *dest;
 }
 
-char* dir_content(char* dirname, char** dest, int active_cell) {
-	char* path = (char*)malloc(sizeof(char) * BUFFER_SIZE);
-	*path = '\0';
-	strcat(path, dirname);
-	strcat(path, "/");
-	DIR *d;
-	struct dirent *dir;
-	d = opendir(dirname);
-	if (d) {
-		for (int i = 0; i < active_cell; ++i) {
-			dir = readdir(d);
-		}
-		if (dir->d_type == DT_DIR)
-			strcat(path, dir->d_name);
-		else
-			*path = '\0';
-		closedir(d);
-		*dest = dir_list(path, dest);
-	}
-	free(path);
-	return *dest;
-}
-
-char* here_i_go(char* dirname, char** dest, int active_cell) {
-	*dest = (char*)malloc(sizeof(char) * BUFFER_SIZE);
-	**dest = '\0';
-	strcat(*dest, dirname);
-	strcat(*dest, "/");
-	DIR *d;
-	struct dirent *dir;
-	d = opendir(dirname);
-	if (d) {
-		for (int i = 0; i < active_cell; ++i) {
-			dir = readdir(d);
-		}
-		strcat(*dest, dir->d_name);
-		closedir(d);
-	}
-	return *dest;
-}
