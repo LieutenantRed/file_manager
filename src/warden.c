@@ -48,22 +48,21 @@ char* offset_name(char* ppath, int offset, char** name_ptr) {
 
 
 char* dpath(char* ppath, char* direct) { // перейти в direct директорию, NULL если не директория
-	strcat(ppath, direct);
+	strncpy(ppath, direct, BUFFER_SIZE);
 	strcat(ppath, "/");
 	
 	DIR *d;
-	struct dirent *dir;
 	d = opendir(ppath);
 	if (!d) {
 		strcpy(ppath, "\0");
 		return NULL;
-	}
+	} 
 	closedir(d);
 	return ppath;
 }
 
 char* ppath(char* dpath) {
-	if (dpath[1] == '\0')
+	if (dpath[0] == '\0')
 		return dpath;
 	char* iter;
 	for (iter = dpath + strlen(dpath) - 2; (*iter != '/') && (iter >= dpath); --iter) ;
@@ -71,20 +70,19 @@ char* ppath(char* dpath) {
 	return dpath;
 }
 
-char* dir_list(char* dirname, char** dest) {
-	*dest = (char*)malloc(sizeof(char) * BUFFER_SIZE);
-	**dest = '\0';
+char* dir_list(char* dirname, char* dest) {
+	*dest = '\0';
 	DIR *d;
 	struct dirent *dir;
 	d = opendir(dirname);
 	if (d) {
 		while ((dir = readdir(d)) != NULL) {
-			strcat(*dest, dir->d_name);
-			strcat(*dest, "\n");
+			strcat(dest, dir->d_name);
+			strcat(dest, "\n");
 		}
-		(*dest)[strlen(*dest) - 1] = '\0';
+		dest[strlen(dest) - 1] = '\0';
 	}
 	closedir(d);
-	return *dest;
+	return dest;
 }
 

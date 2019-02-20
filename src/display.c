@@ -54,6 +54,9 @@ void end_display() {
 // highlight active cell, returns number of lines
 // drawing borders
 int display_ls(WINDOW* win, char* list) {
+	if (*list == '\0') {
+		strcpy(list, "not accessable\0");
+	}
 	werase(win);
 	//borders
 	if ((BORDERS_ENABLED) && (win == current)) {
@@ -70,6 +73,7 @@ int display_ls(WINDOW* win, char* list) {
 			wattroff(win, A_BOLD);
 			wattron(win, COLOR_PAIR(CURRENT_ITEM));
 		}
+
 		while ((*list != '\n') && (*list != '\0')) {
 			mvwaddch(win, y, x, *list);
 			++list;
@@ -99,21 +103,22 @@ void update_sysinfo(char* info) {
 }
 
 // @_@ 
-int key_handling(char* begdir) {
-	int ch;	
-	char* current_dir = (char*)malloc(sizeof(char)*BUFFER_SIZE);
-	strcpy(current_dir, begdir);
-	char* next_dir = (char*)malloc(sizeof(char)*BUFFER_SIZE);
-	strcpy(next_dir, begdir);
+char* navigate(char* directory, char* response) {
+	int ch;	// for switch only
 
-	active_cell.name = offset_name(begdir, active_cell.line, &active_cell.name);
+	char* current_dir = (char*)malloc(sizeof(char) * BUFFER_SIZE);
+	strncpy(current_dir, directory, BUFFER_SIZE);
+	char* next_dir = (char*)malloc(sizeof(char) * BUFFER_SIZE);
+	strncpy(next_dir, directory, BUFFER_SIZE);
+
+	offset_name(directory, active_cell.line, &active_cell.name); 
 	dpath(next_dir, active_cell.name);
 
 	//panels filling here
-	char* navigation_panel;
-	char* right_panel;
-	dir_list(begdir, &navigation_panel);
-	dir_list(next_dir, &right_panel);
+	char* navigation_panel = (char*)malloc(BUFFER_SIZE * sizeof(char));
+	char* right_panel = (char*)malloc(BUFFER_SIZE * sizeof(char));;
+	dir_list(current_dir, navigation_panel);
+	dir_list(next_dir, right_panel);
 	int down_limit = display_ls(current, navigation_panel);
 	display_ls(next, right_panel);
 
@@ -123,27 +128,32 @@ int key_handling(char* begdir) {
 		case 'w':
 		case KEY_UP:
 			if (active_cell.line > 1)
-				--active_cell.line;
-			display_ls(current, navigation_panel); //navigate cursor highlight
-			ppath(next_dir);
+				--active_cell.line; // change current cell
+			
+			memset(next_dir, 0, BUFFER_SIZE);
+			strncpy(next_dir, current_dir, BUFFER_SIZE);
 			active_cell.name = offset_name(current_dir, active_cell.line, &active_cell.name);
 			dpath(next_dir, active_cell.name);
+			dir_list(next_dir, right_panel); //upload current cell content
 
-			dir_list(next_dir, &right_panel); //upload current cell content
 			display_ls(next, right_panel); //display current cell content
+			display_ls(current, navigation_panel); //display cursor highlight
+
 			break;
 
 		case 's':
-		case KEY_DOWN: //KEY_UP
+		case KEY_DOWN: //KEY_DOWN
 			if (active_cell.line < down_limit - 1) 
 				++active_cell.line;
-			display_ls(current, navigation_panel); //navigate cursor highlight
-			ppath(next_dir);
+			
+			memset(next_dir, 0, BUFFER_SIZE);
+			strncpy(next_dir, current_dir, BUFFER_SIZE);
 			active_cell.name = offset_name(current_dir, active_cell.line, &active_cell.name);
 			dpath(next_dir, active_cell.name);
+			dir_list(next_dir, right_panel); //upload current cell content
 
-			dir_list(next_dir, &right_panel); //upload current cell content
 			display_ls(next, right_panel); //display current cell content
+			display_ls(current, navigation_panel); //display cursor highlight
 			break;
 
 		case KEY_RESIZE: // #_#
@@ -153,39 +163,47 @@ int key_handling(char* begdir) {
 			display_ls(next, right_panel);
 			break;
 
-		case KEY_LEFT: //return back
+		case KEY_LEFT: ;//return back
 			active_cell.line = 1;
+			free(navigation_panel);
+			free(right_panel);
+			free(next_dir);
+			strncpy(response, current_dir, BUFFER_SIZE);
+			strcat(response, "/../");
+			free(current_dir);
+			return response;
+
+		case '\n': 
+		case KEY_RIGHT: ;
+			active_cell.line = 1;
+			if (next_dir[0] == '\0') {
+				strncpy(response, current_dir, BUFFER_SIZE);
+			} else {
+				strncpy(response, next_dir, BUFFER_SIZE);
+			}
 			free(navigation_panel);
 			free(right_panel);
 			free(current_dir);
 			free(next_dir);
-			return 1;
-
-		case KEY_ENTER:
-		case KEY_RIGHT: ;
-			active_cell.line = 1;
-			int ret = key_handling(next_dir);
-			if (ret == 0) {
-				free(navigation_panel);
-				free(right_panel);
-				free(current_dir);
-				free(next_dir);
-				return 0;
-			} else {
-				display_ls(current, navigation_panel);
-				display_ls(next, right_panel);
-			}
-			break;
+			return response;
 		}
 	}
 	free(navigation_panel);
 	free(right_panel);
 	free(current_dir);
 	free(next_dir);
-	return 0;
+	strcpy(response, "exit");
+	return response;
 }
 
-void display_navigation() {
+void display_navigation(char* path) {
 	active_cell.line = 1;
-	while (key_handling("./") != 0) ;
+	ppath(path);
+
+	char* response = (char*)malloc(sizeof(char) * BUFFER_SIZE);
+	while (strncmp(path, "exit", BUFFER_SIZE) != 0) {
+		navigate(path, response);
+		strncpy(path, response, BUFFER_SIZE); // update current state
+	}
+	free(response);
 }

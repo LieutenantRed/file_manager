@@ -17,5 +17,7 @@ $(TARGET): $(OBJ) $(HEADERS)
 %.o: %.c $(HEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+uninstall: clean
+
 clean:
-	rm -f $(TARGET)
+	rm -f "$(TARGET)"

@@ -19,6 +19,6 @@ char* offset_name(char* ppath, int offset, char** name_ptr);
 
 char* dpath(char* ppath, char* direct);
 char* ppath(char* dpath);
-char* dir_list(char* dirname, char** dest);
+char* dir_list(char* dirname, char* dest);
 
 #endif

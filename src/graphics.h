@@ -40,5 +40,5 @@ void end_display();
 
 
 
-void display_navigation();
+void display_navigation(char* path);
 #endif
