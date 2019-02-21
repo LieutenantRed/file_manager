@@ -9,7 +9,7 @@
 #include <stdio.h>
 
 #ifndef BUFFER_SIZE 
-#define BUFFER_SIZE 2048
+#define BUFFER_SIZE 4000
 #endif
 
 int dcount(DIR* d); // returns number of dirs inside d
